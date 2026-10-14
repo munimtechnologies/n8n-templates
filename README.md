@@ -37,4 +37,4 @@ Both run before every change is published. Python standard library only.
 
 Made by MV2 of Munim, Inc. The templates were written with AI agents working in his name, then checked by the tests above. Issues and pull requests are welcome.
 
-MIT licensed.
+Apache-2.0 licensed.
