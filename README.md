@@ -13,7 +13,7 @@ Free n8n workflows that keep an eye on the AI tools you host yourself: Ollama, O
 In n8n: **Workflows → Import from URL**, then paste the raw link, for example:
 
 ```
-https://raw.githubusercontent.com/munimv2/n8n-templates/main/workflows/ai-tools-vulnerability-report.json
+https://raw.githubusercontent.com/munimtechnologies/n8n-templates/main/workflows/ai-tools-vulnerability-report.json
 ```
 
 Or download the JSON file and use **Import from File**. Each workflow has a yellow note with full setup steps. Placeholders you must change start with `REPLACE_WITH_`.
@@ -22,7 +22,7 @@ Or download the JSON file and use **Import from File**. Each workflow has a yell
 
 - **Advisories** come from the free [OSV.dev API](https://google.github.io/osv.dev/post-v1-query/). One request per tool asks which advisories affect that exact version, so there's no version-range parsing to get wrong. No key needed.
 - **Your servers** are only read: version, model list, settings, user list. Nothing is changed.
-- Some advisories for these tools are published only on the project's GitHub Security tab and never reach OSV.dev. MV2's [self-hosted AI security checklist](https://github.com/munimv2/self-hosted-ai-security-checklist) tracks the ones he found.
+- Some advisories for these tools are published only on the project's GitHub Security tab and never reach OSV.dev. MV2's [self-hosted AI security checklist](https://github.com/munimtechnologies/self-hosted-ai-security-checklist) tracks the ones he found.
 
 ## Tests
 
