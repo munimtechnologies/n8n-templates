@@ -1,0 +1,318 @@
+{
+  "name": "Watch an Ollama server for updates, vulnerabilities and unknown models with Telegram alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Watch an Ollama server for updates, vulnerabilities and unknown models with Telegram alerts\n\n**Who it's for:** people who run Ollama on a home server, NAS, VPS or office machine and want a daily check that it is current, has no known vulnerabilities, and holds only the models they put there.\n\n**How it works**\n1. Every day at 07:00 the workflow asks your Ollama server for its version and its installed models.\n2. It compares the version with the latest Ollama release on GitHub.\n3. It asks the free OSV.dev API which published advisories affect that exact version.\n4. It compares the installed models with your list of expected models. Models nobody on your side pulled are a common sign that the Ollama port is reachable by strangers.\n5. If anything needs attention, it sends one Telegram message.\n\n**Setup**\n1. Open **Settings**: set `ollamaUrl` (use `http://host.docker.internal:11434` when n8n runs in Docker on the same machine) and list the models you expect.\n2. Open **Send Telegram alert**, connect your Telegram bot and replace `REPLACE_WITH_YOUR_CHAT_ID`.\n3. Run it once by hand, then activate it.\n\n**Requirements:** a Telegram bot token. No other accounts or API keys.\n\n**Customize:** swap Telegram for Slack, email or Discord, or change the schedule.\n\nMade by MV2 of Munim, Inc., with AI agents. Advisory data: OSV.dev.",
+        "height": 820,
+        "width": 480
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a01",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-560, -260]
+    },
+    {
+      "parameters": {
+        "content": "### 1. Ask your server\nVersion and installed models come from your own Ollama API. If it does not answer, the alert says so.",
+        "height": 280,
+        "width": 680,
+        "color": 7
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a02",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-20, -260]
+    },
+    {
+      "parameters": {
+        "content": "### 2. Compare with public data\nLatest release from GitHub, advisories for your exact version from OSV.dev. Neither needs a key.",
+        "height": 280,
+        "width": 480,
+        "color": 7
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a03",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [680, -260]
+    },
+    {
+      "parameters": {
+        "content": "### 3. Alert\nOne message lists everything that needs attention. Nothing is sent on a clean day.",
+        "height": 280,
+        "width": 680,
+        "color": 7
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a04",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1180, -260]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a10",
+      "name": "Every day at 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Edit these settings.\n// ollamaUrl: where n8n can reach Ollama. In Docker on the same machine, use http://host.docker.internal:11434\n// expectedModels: the models you pulled yourself. Leave the list empty to skip the model check.\nreturn [{\n  json: {\n    ollamaUrl: 'http://localhost:11434',\n    expectedModels: ['llama3.2:3b', 'nomic-embed-text'],\n  },\n}];"
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a11",
+      "name": "Settings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.ollamaUrl }}/api/version",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a12",
+      "name": "Get Ollama version",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Settings').first().json.ollamaUrl }}/api/tags",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a13",
+      "name": "List installed models",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://api.github.com/repos/ollama/ollama/releases/latest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a14",
+      "name": "Get latest Ollama release",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.osv.dev/v1/query",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ package: { ecosystem: 'Go', name: 'github.com/ollama/ollama' }, version: String($('Get Ollama version').first().json.version || 'unknown') }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a15",
+      "name": "Ask OSV.dev about this version",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Compares what the server reports with the latest release, OSV.dev and your model list.\nconst settings = $('Settings').first().json;\nconst versionAnswer = $('Get Ollama version').first().json;\nconst tagsAnswer = $('List installed models').first().json;\nconst releaseAnswer = $('Get latest Ollama release').first().json;\nconst osvAnswer = $input.first().json;\n\nfunction parts(v) {\n  let s = String(v || '').trim();\n  if (s.startsWith('v')) s = s.slice(1);\n  const out = [];\n  for (const piece of s.split('.')) {\n    const n = parseInt(piece, 10);\n    if (isNaN(n)) break;\n    out.push(n);\n    if (String(n) !== piece) break;\n  }\n  return out;\n}\n\nfunction cmp(a, b) {\n  const x = parts(a);\n  const y = parts(b);\n  for (let i = 0; i < Math.max(x.length, y.length); i++) {\n    const d = (x[i] || 0) - (y[i] || 0);\n    if (d !== 0) return d > 0 ? 1 : -1;\n  }\n  return 0;\n}\n\n// 'llama3.2:latest' and 'llama3.2' are the same model.\nfunction modelName(n) {\n  const s = String(n || '').trim().toLowerCase();\n  return s.endsWith(':latest') ? s.slice(0, -7) : s;\n}\n\nconst lines = [];\nconst installed = versionAnswer.error ? null : versionAnswer.version;\n\nif (!installed) {\n  lines.push('Ollama did not answer at ' + settings.ollamaUrl + '. Is it running, and can n8n reach it?');\n} else {\n  let latest = releaseAnswer.error ? null : String(releaseAnswer.tag_name || '');\n  if (latest && latest.startsWith('v')) latest = latest.slice(1);\n  if (latest && cmp(latest, installed) > 0) {\n    lines.push('Update available: this server runs ' + installed + ', the latest release is ' + latest + '. ' + (releaseAnswer.html_url || ''));\n  }\n  const vulns = osvAnswer.error ? [] : (osvAnswer.vulns || []);\n  if (vulns.length) {\n    lines.push(vulns.length + ' published advisories affect Ollama ' + installed + ':');\n    for (const v of vulns.slice(0, 10)) {\n      lines.push('- ' + v.id + ': ' + (v.summary || 'no summary') + ' https://osv.dev/vulnerability/' + v.id);\n    }\n    if (vulns.length > 10) lines.push('- and ' + (vulns.length - 10) + ' more');\n  }\n  if (osvAnswer.error) lines.push('OSV.dev could not be reached, so advisories were not checked today.');\n}\n\nconst expected = (settings.expectedModels || []).map(modelName);\nif (!tagsAnswer.error && Array.isArray(tagsAnswer.models) && expected.length) {\n  const names = tagsAnswer.models.map(m => m.name);\n  const present = names.map(modelName);\n  const unexpected = names.filter(n => !expected.includes(modelName(n)));\n  const missing = expected.filter(e => !present.includes(e));\n  if (unexpected.length) {\n    lines.push('Models you did not list: ' + unexpected.join(', ') + '. If nobody on your side pulled them, someone else may be using this server. Make sure port 11434 is not reachable from the internet.');\n  }\n  if (missing.length) lines.push('Expected models that are gone: ' + missing.join(', ') + '.');\n}\n\nlet sizeNote = '';\nif (!tagsAnswer.error && Array.isArray(tagsAnswer.models)) {\n  const bytes = tagsAnswer.models.reduce((n, m) => n + (Number(m.size) || 0), 0);\n  sizeNote = tagsAnswer.models.length + ' models installed, ' + (bytes / 1e9).toFixed(1) + ' GB in total.';\n}\n\nconst header = 'Ollama check for ' + settings.ollamaUrl;\nconst message = [header, ''].concat(lines, sizeNote ? ['', sizeNote] : []).join('\\n');\n\nreturn [{ json: { alert: lines.length > 0, findings: lines.length, message } }];"
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a16",
+      "name": "Compare and write the alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8e1a3b62-4f8d-4c29-9da3-2e5f6a7b8c01",
+              "leftValue": "={{ $json.alert }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a17",
+      "name": "Anything to report?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1540, 0]
+    },
+    {
+      "parameters": {
+        "chatId": "REPLACE_WITH_YOUR_CHAT_ID",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a18",
+      "name": "Send Telegram alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1760, -100]
+    },
+    {
+      "parameters": {},
+      "id": "7d2f9b51-3a7c-4e1f-8b62-8c4d3e2f1a19",
+      "name": "All good today",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1760, 100]
+    }
+  ],
+  "connections": {
+    "Every day at 07:00": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Get Ollama version",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Ollama version": {
+      "main": [
+        [
+          {
+            "node": "List installed models",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List installed models": {
+      "main": [
+        [
+          {
+            "node": "Get latest Ollama release",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get latest Ollama release": {
+      "main": [
+        [
+          {
+            "node": "Ask OSV.dev about this version",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask OSV.dev about this version": {
+      "main": [
+        [
+          {
+            "node": "Compare and write the alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compare and write the alert": {
+      "main": [
+        [
+          {
+            "node": "Anything to report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anything to report?": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "All good today",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

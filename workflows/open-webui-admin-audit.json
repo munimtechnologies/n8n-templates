@@ -1,0 +1,323 @@
+{
+  "name": "Audit Open WebUI sign-up, admin accounts and known vulnerabilities with Slack alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Audit Open WebUI sign-up, admin accounts and known vulnerabilities with Slack alerts\n\n**Who it's for:** admins of a self-hosted Open WebUI for a team, family or company who want to know when its access settings drift into something risky.\n\n**How it works**\n1. Every day at 08:00 the workflow reads the Open WebUI version, the admin settings and the user list through the Open WebUI API.\n2. It flags settings that let strangers in or keep stolen sessions alive: open sign-up that grants access without approval, sessions that never expire, unrestricted API keys, community sharing.\n3. It flags admin accounts you did not list, accounts waiting for approval, and accounts created since the last run.\n4. It asks the free OSV.dev API which advisories affect your exact version.\n5. If anything reaches your alert level, it posts one Slack message.\n\n**Setup**\n1. In Open WebUI, create an API key on an admin account (Settings > Account > API keys; an admin may need to enable API keys first).\n2. Create a **Header Auth** credential in n8n: name `Authorization`, value `Bearer ` followed by the key. Select it in **Get admin settings** and **List users**.\n3. Open **Settings**: set `openWebuiUrl`, your admin emails and the alert level.\n4. Open **Post to Slack**, connect Slack and set the channel. Run once, then activate.\n\n**Requirements:** Open WebUI 0.6 or newer, an admin API key, Slack.\n\nMade by MV2 of Munim, Inc., with AI agents. Advisory data: OSV.dev.",
+        "height": 900,
+        "width": 500
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b01",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-580, -280]
+    },
+    {
+      "parameters": {
+        "content": "### 1. Read Open WebUI\nThe version needs no key. Admin settings and the user list need an admin API key in a Header Auth credential.",
+        "height": 300,
+        "width": 900,
+        "color": 7
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b02",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-20, -280]
+    },
+    {
+      "parameters": {
+        "content": "### 2. Check\nKnown advisories for the exact version, then every setting and account rule. New accounts are remembered between scheduled runs.",
+        "height": 300,
+        "width": 440,
+        "color": 7
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b03",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [900, -280]
+    },
+    {
+      "parameters": {
+        "content": "### 3. Alert\nPosts to Slack only when a finding reaches the alert level in Settings, or a check could not run.",
+        "height": 300,
+        "width": 680,
+        "color": 7
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b04",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1360, -280]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b10",
+      "name": "Every day at 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Edit these settings.\n// openWebuiUrl: where n8n can reach Open WebUI, without a trailing slash.\n// expectedAdmins: the emails of everyone who should be an admin. Leave empty to skip that check.\n// alertLevel: post to Slack for findings at this level or above: 'HIGH', 'MEDIUM' or 'LOW'.\nreturn [{\n  json: {\n    openWebuiUrl: 'http://localhost:3000',\n    expectedAdmins: ['admin@example.com'],\n    alertLevel: 'MEDIUM',\n  },\n}];"
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b11",
+      "name": "Settings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.openWebuiUrl }}/api/version",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b12",
+      "name": "Get Open WebUI version",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Settings').first().json.openWebuiUrl }}/api/v1/auths/admin/config",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b13",
+      "name": "Get admin settings",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Settings').first().json.openWebuiUrl }}/api/v1/users/all",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b14",
+      "name": "List users",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.osv.dev/v1/query",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ package: { ecosystem: 'PyPI', name: 'open-webui' }, version: String($('Get Open WebUI version').first().json.version || 'unknown') }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b15",
+      "name": "Ask OSV.dev about this version",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turns the API answers into findings with a level, then decides whether to alert.\nconst s = $('Settings').first().json;\nconst versionAnswer = $('Get Open WebUI version').first().json;\nconst config = $('Get admin settings').first().json;\nconst usersAnswer = $('List users').first().json;\nconst osvAnswer = $input.first().json;\n\nconst RANK = { LOW: 1, MEDIUM: 2, HIGH: 3, CRITICAL: 4, ERROR: 5 };\nconst findings = [];\nfunction add(level, text) {\n  findings.push({ level, text });\n}\n\nconst version = versionAnswer.error ? null : versionAnswer.version;\nif (!version) add('ERROR', 'Open WebUI did not answer at ' + s.openWebuiUrl + '. Is it running, and can n8n reach it?');\n\n// Advisories that affect this exact version.\nif (version && !osvAnswer.error) {\n  const vulns = osvAnswer.vulns || [];\n  for (const v of vulns.slice(0, 10)) {\n    const sev = String((v.database_specific && v.database_specific.severity) || 'MEDIUM').toUpperCase();\n    const level = sev === 'MODERATE' ? 'MEDIUM' : (RANK[sev] ? sev : 'MEDIUM');\n    add(level, 'Open WebUI ' + version + ' is affected by ' + v.id + ': ' + (v.summary || 'no summary') + ' https://osv.dev/vulnerability/' + v.id);\n  }\n  if (vulns.length > 10) add('MEDIUM', 'And ' + (vulns.length - 10) + ' more advisories. Update Open WebUI.');\n}\n\n// Admin settings. Key names changed in newer releases, so both spellings are read.\nif (config.error || config.ENABLE_SIGNUP === undefined) {\n  add('ERROR', 'Could not read the admin settings. Check that the API key belongs to an admin and that the Header Auth value starts with Bearer.');\n} else {\n  const role = config.DEFAULT_USER_ROLE;\n  if (config.ENABLE_SIGNUP === true && role !== 'pending') {\n    add('HIGH', 'Sign-up is open and new accounts get the ' + role + ' role at once: anyone who can reach this URL can use your models. Set the default role to pending, or turn sign-up off.');\n  } else if (config.ENABLE_SIGNUP === true) {\n    add('LOW', 'Sign-up is open; new accounts wait as pending until an admin approves them.');\n  }\n  if (String(config.JWT_EXPIRES_IN) === '-1') {\n    add('MEDIUM', 'Login sessions never expire (JWT_EXPIRES_IN is -1), so a stolen token works forever. Set an expiry such as 4w.');\n  }\n  const apiKeys = config.ENABLE_API_KEYS !== undefined ? config.ENABLE_API_KEYS : config.ENABLE_API_KEY;\n  const restricted = config.ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS !== undefined ? config.ENABLE_API_KEYS_ENDPOINT_RESTRICTIONS : config.ENABLE_API_KEY_ENDPOINT_RESTRICTIONS;\n  if (apiKeys === true && restricted !== true) {\n    add('LOW', 'API keys have no endpoint restrictions: a leaked key carries all the rights of its owner.');\n  }\n  if (config.ENABLE_COMMUNITY_SHARING === true) {\n    add('LOW', 'Community sharing is on: users can publish chats to openwebui.com.');\n  }\n}\n\n// Accounts.\nlet users = null;\nif (!usersAnswer.error) {\n  try {\n    const parsed = JSON.parse(usersAnswer.data);\n    users = Array.isArray(parsed) ? parsed : (parsed.users || null);\n  } catch (e) {\n    users = null;\n  }\n}\nif (users === null) {\n  add('ERROR', 'Could not list users. This workflow needs Open WebUI 0.6 or newer and an admin API key.');\n} else {\n  const expected = (s.expectedAdmins || []).map(e => String(e).toLowerCase());\n  const admins = users.filter(u => u.role === 'admin').map(u => String(u.email || u.name || u.id).toLowerCase());\n  const extra = admins.filter(a => !expected.includes(a));\n  if (expected.length && extra.length) add('HIGH', 'Admin accounts you did not list: ' + extra.join(', ') + '.');\n  const pending = users.filter(u => u.role === 'pending');\n  if (pending.length) add('LOW', pending.length + ' accounts are waiting for approval: ' + pending.map(u => u.email || u.name).join(', ') + '.');\n\n  // Remembered only between runs of the active workflow, not manual test runs.\n  const memory = $getWorkflowStaticData('global');\n  const known = Array.isArray(memory.knownUserIds) ? memory.knownUserIds : null;\n  if (known) {\n    const fresh = users.filter(u => !known.includes(u.id));\n    if (fresh.length) add('MEDIUM', 'New accounts since the last check: ' + fresh.map(u => (u.email || u.name) + ' (' + u.role + ')').join(', ') + '.');\n  }\n  memory.knownUserIds = users.map(u => u.id);\n}\n\nconst threshold = RANK[String(s.alertLevel || 'MEDIUM').toUpperCase()] || 2;\nconst alert = findings.some(f => RANK[f.level] >= threshold);\nfindings.sort((a, b) => RANK[b.level] - RANK[a.level]);\n\nconst header = '*Open WebUI check for ' + s.openWebuiUrl + '*' + (version ? ' (version ' + version + ')' : '');\nconst body = findings.length ? findings.map(f => '[' + f.level + '] ' + f.text).join('\\n') : 'No findings.';\n\nreturn [{ json: { alert, findingCount: findings.length, findings, message: header + '\\n' + body } }];"
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b16",
+      "name": "Check settings and accounts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "a04b5c73-5a9e-4d3a-8eb4-3f6a7b8c9d01",
+              "leftValue": "={{ $json.alert }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b17",
+      "name": "Worth an alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1540, 0]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "REPLACE_WITH_YOUR_CHANNEL",
+          "mode": "name"
+        },
+        "text": "={{ $json.message }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b18",
+      "name": "Post to Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.3,
+      "position": [1780, -100]
+    },
+    {
+      "parameters": {},
+      "id": "9f3a0c62-4b8d-4f2a-9c73-9d5e4f3a2b19",
+      "name": "Below alert level",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1780, 100]
+    }
+  ],
+  "connections": {
+    "Every day at 08:00": {
+      "main": [
+        [
+          {
+            "node": "Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Settings": {
+      "main": [
+        [
+          {
+            "node": "Get Open WebUI version",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Open WebUI version": {
+      "main": [
+        [
+          {
+            "node": "Get admin settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get admin settings": {
+      "main": [
+        [
+          {
+            "node": "List users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List users": {
+      "main": [
+        [
+          {
+            "node": "Ask OSV.dev about this version",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ask OSV.dev about this version": {
+      "main": [
+        [
+          {
+            "node": "Check settings and accounts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check settings and accounts": {
+      "main": [
+        [
+          {
+            "node": "Worth an alert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Worth an alert?": {
+      "main": [
+        [
+          {
+            "node": "Post to Slack",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Below alert level",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
