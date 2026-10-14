@@ -4,7 +4,7 @@ Run: python -m pytest test_workflows.py  (or python test_workflows.py)
 Standard library only. Checks what n8n's template review looks at: valid JSON, wired
 connections, descriptive node names, a full description sticky note, no credentials,
 and that every $('Node name') reference in code and expressions points at a real node.
-tools/check-params.js (run in CI) checks node parameters against n8n's own node definitions.
+test_node_params.py checks node parameters against n8n's own node definitions.
 """
 
 import json

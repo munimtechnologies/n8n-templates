@@ -26,11 +26,12 @@ Or download the JSON file and use **Import from File**. Each workflow has a yell
 
 ## Tests
 
-Every push runs three checks in GitHub Actions ([validate.yml](.github/workflows/validate.yml)):
+Both run before every change is published. Python standard library only.
 
-- `python test_workflows.py`: structure. Valid JSON, wired connections, descriptive node names, the description note, no stored credentials, balanced expressions, and every `$('Node name')` reference points at a real node. Standard library only.
-- `node tools/check-params.js workflows`: every node parameter against the node definitions published in `n8n-nodes-base`, the same data the n8n editor builds its forms from, plus the editor's own parameter-issue check.
-- `n8n import:workflow`: each template imported into a throwaway n8n with no credentials.
+- `python test_workflows.py`: structure. Valid JSON, wired connections, descriptive node names, the description note, no stored credentials, balanced expressions, and every `$('Node name')` reference points at a real node.
+- `python test_node_params.py`: every node parameter against the node definitions published in `n8n-nodes-base` (`dist/types/nodes.json`, the data the n8n editor builds its forms from): parameter names, option values, collection keys, and whether n8n shows the parameter for the chosen settings and node version. It downloads that file once (about 8 MB); set `SKIP_N8N_PARAMS=1` to skip it offline.
+
+`tools/check-params.js` is a Node.js take on the same check that also calls n8n-workflow's parameter-issue function. Run it after `npm install n8n-nodes-base n8n-workflow` with `node tools/check-params.js workflows`.
 
 ## About
 
